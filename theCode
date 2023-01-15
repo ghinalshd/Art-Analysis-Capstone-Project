@@ -1,0 +1,552 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+@author: ghinaalshdaifat
+"""
+#Import necessary packages
+import pandas as pd 
+import numpy as np
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+from scipy.stats import mannwhitneyu
+import scipy.stats as stats
+from sklearn.linear_model import Ridge #To do ridge regression
+from sklearn.metrics import mean_squared_error #To evaluate model with function
+from sklearn.model_selection import train_test_split
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_samples
+from sklearn.cluster import DBSCAN
+from sklearn.decomposition import PCA
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+from scipy.stats import ttest_ind
+import matplotlib.pyplot as plt
+from scipy.stats import t
+
+#Import data 
+art_data = pd.read_csv("/Users/ghinaalshdaifat/Desktop/theArt.csv")
+user_data = np.genfromtxt("/Users/ghinaalshdaifat/Desktop/theData.csv",delimiter = ",")
+pd_user_data = pd.read_csv("/Users/ghinaalshdaifat/Desktop/theData.csv")
+
+#%% Q1: Is classical art more well liked than modern art?
+#Defining my variables
+classical_art_ratings = user_data[:,0:35]
+modern_art_ratings = user_data[:,35:70]
+#Calculate the Medians:
+median_classical = np.median(classical_art_ratings) #5.0
+median_modern = np.median(modern_art_ratings) #4.0
+#Calculate the Means:
+mean_classical = np.mean(classical_art_ratings)
+mean_modern = np.mean(modern_art_ratings)
+#Conduct the Mann-Whitney U test
+U, p = mannwhitneyu(classical_art_ratings, modern_art_ratings)
+U = U.mean() #52313.75714285715
+p = p.mean() #0.10917592963086452
+# Print the results of the test
+print("U-statistic: ", U) 
+print("p-value: ", p)
+plt.bar(0,median_classical, label='Classical Art')
+plt.bar(1,median_modern, label='Modern Art')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Median Values')
+plt.legend()
+plt.title("Medians of Classical Art and Modern Art Ratings")
+plt.show()
+plt.bar(0,mean_classical, label='Classical Art')
+plt.bar(1,mean_modern, label='Modern Art')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Mean Values')
+plt.legend()
+plt.title("Means of Classical Art and Modern Art Ratings")
+plt.show()
+numBins = 7
+plt.hist(classical_art_ratings, bins = numBins)
+plt.title("Distribution of Classical Art Ratings")
+plt.xlabel('Ratings')
+plt.show()
+plt.hist(modern_art_ratings, bins = numBins)
+plt.title("Distribution of Modern Art Ratings")
+plt.show()
+
+#%% Q2: Is there a difference in the preference ratings for modern art vs. non-human (animals and
+#computers) generated art? 
+#Gathering data & reshape
+non_human_art_ratings = user_data[:,70:92]
+modern_art_ratings = user_data[:,35:70]
+non_humanf = non_human_art_ratings.flatten()
+modernf = modern_art_ratings.flatten()
+#Calculate the Medians:
+median_modern = np.median(modern_art_ratings) #4.0
+median_non_human = np.median(non_human_art_ratings) #3.0
+mean_modern = np.mean(modern_art_ratings)
+mean_non_human = np.mean(non_human_art_ratings)
+#Conduct the Mann-Whitney U test
+U2, p2 = mannwhitneyu(modernf, non_humanf)
+numBins = 7
+plt.hist(non_human_art_ratings, bins = numBins)
+plt.title("Distribution of Non-Human Art Ratings")
+plt.xlabel('Ratings')
+plt.show()
+plt.hist(modern_art_ratings, bins = numBins)
+plt.title("Distribution of Modern Art Ratings")
+plt.xlabel('Ratings')
+plt.show()
+# Print the results of the test
+print("U-statistic: ", U2) #45308968.5
+print("p-value: ", p2) #2.315828521481328e-259
+plt.bar(0,median_modern, color = 'red', label='Modern Art')
+plt.bar(1,median_non_human,color = 'green', label='Non-Human Art')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Median Values')
+plt.legend()
+plt.title("Medians of Modern Art and Non-Human Generated Art Ratings")
+plt.show()
+plt.bar(0,mean_modern, label='Modern Art')
+plt.bar(1,mean_non_human, label='Non-Human Art')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Mean Values')
+plt.legend()
+plt.title("Means of Modern Art and Non-Human Generated Art Ratings")
+plt.show()
+
+#%% Q3: Do women give higher art preference ratings than men?
+#Collect data 
+gender = user_data[:,216]
+art_ratings = user_data[:,0:91]
+#put variables in a dataframe to drop nan values
+df_gender = pd.DataFrame(gender)
+df_art_ratings = pd.DataFrame(art_ratings)
+#join both dataframes together
+df_art_ratings[91] = df_gender[0]
+#drop nan values
+gender_ratings_data = df_art_ratings.dropna()
+#locate 1 for male, and 2 for female:
+male_ratings = gender_ratings_data.loc[gender_ratings_data[91] == 1]
+female_ratings = gender_ratings_data.loc[gender_ratings_data[91] == 2] 
+#delete values from dataframe:
+del male_ratings[91]
+del female_ratings[91]
+#return to array:
+female_ratings = female_ratings.to_numpy()
+male_ratings = male_ratings.to_numpy()
+#calculate the median values:
+median_male = np.median(male_ratings) #4.0
+median_female = np.median(female_ratings) #4.0
+mean_male = np.mean(male_ratings)
+mean_female=np.mean(female_ratings)
+#Conduct the Mann-Whitney U test
+U3, p3 = mannwhitneyu(female_ratings, male_ratings)
+U3 = U3.mean() #52313.75714285715
+p3 = p3.mean() #0.10917592963086452
+# Print the results of the test
+print("U-statistic: ", U3) #8563.423076923076
+print("p-value: ", p3) #0.37475428900506297
+numBins = 7
+plt.hist(female_ratings, bins = numBins)
+plt.title("Distribution of Female Art Ratings")
+plt.xlabel('Ratings')
+plt.show()
+plt.hist(male_ratings, bins = numBins)
+plt.title("Distribution of Male Art Ratings")
+plt.xlabel('Ratings')
+plt.show()
+plt.bar(0,median_male, color = 'blue', label='Male')
+plt.bar(1,median_female,color = 'purple', label='Female')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Median Values')
+plt.legend()
+plt.title("Medians of Male and Female Art Ratings")
+plt.show()
+plt.bar(0,mean_male, label='Male Ratings')
+plt.bar(1,mean_female, label='Female Ratings')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Mean Values')
+plt.legend()
+plt.title("Means of Male and Female Art Ratings")
+plt.show()
+
+#%% Q4: Is there a difference in the preference ratings of users with some art background (some art
+#education) vs. none? 
+#Collect and seperate data
+art_education = user_data[:,218]
+df_art_education = pd.DataFrame(art_education)
+#join both datafraames
+df_art_ratings[91] = df_art_education[0]
+#drop nan values
+education_ratings_data = df_art_ratings.dropna()
+#seperate data: no education (0) & some education (1,2,3)
+no_education = education_ratings_data.loc[education_ratings_data[91]== 0]
+del no_education[91]
+some_education = education_ratings_data.loc[education_ratings_data[91].isin([1,2,3])]
+del some_education[91]
+#change to numpy array:
+no_education = no_education.to_numpy()
+some_education = some_education.to_numpy()
+#calculate medians
+median_some_education = np.median(some_education) #4.0
+median_no_education = np.median(no_education) #4.0
+mean_some_education = np.mean(some_education)
+mean_no_education = np.mean(no_education)
+#Conduct the Mann-Whitney U test
+U4, p4 = mannwhitneyu(no_education, some_education)
+U4 = U4.mean() 
+p4 = p4.mean() 
+# Print the results of the test
+print("U-statistic: ", U4) #9051.439560439561
+print("p-value: ", p4) #0.4546905890736441
+numBins = 7
+plt.hist(no_education, bins = numBins)
+plt.title("Distribution of Art Ratings with No Art Background")
+plt.xlabel('Ratings')
+plt.show()
+plt.hist(some_education, bins = numBins)
+plt.title("Distribution of Art Ratings with Some Art Background")
+plt.xlabel('Ratings')
+plt.show()
+plt.bar(0,median_some_education, color = 'blue', label='Some Education')
+plt.bar(1,median_no_education,color = 'gray', label='No Education')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Median Values')
+plt.legend()
+plt.title("Medians of Art Ratings: No Art Background & Some Art Background")
+plt.show()
+plt.bar(0,mean_some_education, label='Some Education')
+plt.bar(1,mean_no_education, label='No Education')
+plt.xlabel('Data Points')
+plt.xticks([0, 1])
+plt.ylabel('Mean Values')
+plt.legend()
+plt.title("Means of Art Ratings: No Art Background & Some Art Background")
+plt.show()
+
+#%% Q5: Build a regression model to predict art preference ratings from energy ratings only. Make sure
+#to use cross-validation methods to avoid overfitting and characterize how well your model
+#predicts art preference ratings.
+#Since data is categorical, I will be plotting the means and changing shape 
+energy_ratings5 = pd_user_data.iloc[:,91:182].mean(axis = 0)
+art_preference_ratings5 = pd_user_data.iloc[:,0:91].mean(axis = 0)
+energy_ratings5 = np.array(energy_ratings5).reshape(-1,1)
+art_preference_ratings5 = np.array(art_preference_ratings5).reshape(-1,1)
+#energy_ratings5 = energy_ratings5.reshape(-1,1)
+#art_preference_ratings5 = art_preference_ratings5.reshape(-1,1)
+#art_preference_ratings5 = art_preference_ratings5.mean()
+#energy_ratings5 = energy_ratings5.mean()
+#X5 = pd_user_data.iloc[:, 91:182].mean(axis = 0)
+#y5 = pd_user_data.iloc[:, 0:91].mean(axis = 0)
+#X5 = X5.to_numpy().reshape(-1,1)
+#y5 = y5.to_numpy().reshape(-1,1)
+model5 = LinearRegression()
+#Use Train Test model
+X_Train5, X_Test5 , y_Train5, y_Test5 = train_test_split(energy_ratings5, art_preference_ratings5, test_size=0.2, random_state = 12299542)
+model5.fit(X_Train5,y_Train5)
+pred5 = model5.predict(X_Test5)
+print(mean_squared_error(y_Test5, pred5))    #0.9100046792760648
+print(mean_absolute_error(y_Test5, pred5))   #0.752092028392483
+rSq5 = r2_score(y_Test5, pred5)
+print(rSq5)#0.10180796650785162
+Q5scores = cross_val_score(model5,X_Train5, y_Train5).reshape(-1,1)
+print(Q5scores.mean()) #0.08478785718380148
+#%%
+plt.scatter(energy_ratings5, art_preference_ratings5, color = 'black')
+plt.plot(X_Train5, model5.predict(X_Train5), color = "red")
+plt.title("Preference Ratings from Energy Ratings: R^2 = {:.3f}".format(rSq5))
+plt.ylabel("Preference Ratings")
+plt.xlabel("Energy Ratings")
+plt.show()
+# Heeat Map to show Correlation
+energy_ratings5 = user_data[:,91:182]
+art_ratings5 = user_data[:,0:91]
+data5 = np.column_stack((energy_ratings5, art_ratings5))
+varCorrs5 = np.corrcoef(data5[:,0],data5[:,1])
+print(varCorrs5)
+sns.heatmap(varCorrs5, annot=True)
+plt.show()
+
+#%% Q6: Build a regression model to predict art preference ratings from energy ratings and
+#demographic information. Make sure to use cross-validation methods to avoid overfitting and
+#comment on how well your model predicts relative to the “energy ratings only” model
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+pd_user_data = pd.read_csv("/Users/ghinaalshdaifat/Desktop/theData.csv")
+Q6 = pd.concat([pd_user_data.iloc[:, 0:91], pd_user_data.iloc[:, 91:182], pd_user_data.iloc[:, 215:221]], axis = 1).dropna()
+X6 = Q6.iloc[:, 91:].to_numpy() 
+y6 = Q6.iloc[:, 0:91].to_numpy()
+model6 = RandomForestRegressor(n_estimators=100, random_state=0)
+X_train6, X_test6, y_train6, y_test6 = train_test_split(X6, y6, test_size = 0.2, random_state = 12299542)
+model6.fit(X_train6, y_train6)
+pred6 = model6.predict(X_test6)
+mae6 = mean_absolute_error(y_test6, pred6)
+mse6 = mean_squared_error(y_test6, pred6)
+rmse6 = np.sqrt(mse6)
+r26 = r2_score(y_test6, pred6)
+Q6scores = cross_val_score(model6,X_train6, y_train6).reshape(-1,1)
+std_scores = Q6scores.std() #0.01917414767266982
+print("MAE:", mae6) #1.1259026687598117
+print("MSE:", mse6) #1.9948640502354789
+print("RMSE:", rmse6) #1.4123965626676804
+print("R2:", r26) #0.051939403305666904
+#%% Feature Importance Graph
+# Get the prediction intervals for the test data
+# Plot the feature importance scores
+feature_importances6 = model6.feature_importances_
+plt.bar(range(len(feature_importances6)), feature_importances6)
+plt.xlabel("Feature index")
+plt.ylabel("Feature importance")
+plt.legend(["Importance"])
+plt.title("Feature Importance Graph")
+plt.show()
+#Residual Graph 
+# Calculate the residuals
+residuals6 = y_test6 - pred6
+# Plot the residuals against the true targets
+plt.scatter(y_test6, residuals6)
+plt.xlabel("True targets")
+plt.ylabel("Residuals")
+plt.title("Residual Predictions of Art Ratings from Energy Ratings & Demographic Information")
+plt.show()
+
+#%% Q7: Considering the 2D space of average preference ratings vs. average energy rating (that
+#contains the 91 art pieces as elements), how many clusters can you – algorithmically - identify
+#in this space? Make sure to comment on the identity of the clusters – do they correspond to
+#particular types of art?
+energy_ratings7 = user_data[:,91:182]
+art_preference_ratings7 = user_data[:,0:91]
+# 1: KEE ELBOW METHOD
+#Calculate Data:
+ratings_means = art_preference_ratings7.mean(axis = 0).reshape(-1,1)
+energy_means = energy_ratings7.mean(axis = 0).reshape(-1,1)
+art_types = art_data.iloc[:,5]
+data = np.column_stack((energy_means, ratings_means, art_types))
+inertias = []
+for i in range(1,11):
+    kmeans = KMeans(n_clusters = i)
+    kmeans.fit(data)
+    inertias.append(kmeans.inertia_)
+#Plot Knee-Elbow Method Graph
+plt.plot(range(1,11), inertias, marker = 'o')
+plt.title("Elbow Method")
+plt.xlabel("Number of Clusters")
+plt.ylabel("Inertia")
+plt.show()
+#%%
+# 2: PERFOM PCA AND FIND NUMBER OF CLUSTERS THROUGH SILHOUETTE SCORES
+zscoredData = stats.zscore(data)
+# Initialize PCA object and fit to our data:
+pca = PCA().fit(zscoredData)
+# Eigenvalues: Single vector of eigenvalues in decreasing order of magnitude
+eigVals = pca.explained_variance_
+# Loadings (eigenvectors): Weights per factor in terms of the original data.
+loadings = pca.components_*-1
+# Rotated Data - simply the transformed data:
+origDataNewCoordinates = pca.fit_transform(zscoredData)*-1
+#Silhouette Score
+x = np.column_stack((origDataNewCoordinates[:,0],origDataNewCoordinates[:,1]))
+numClusters = 9 # how many clusters are we looping over? (from 2 to 10)
+sSum = np.empty([numClusters,1])*np.NaN # init container to store sums
+# Compute kMeans for each k:
+for ii in range(2,numClusters+2): # Loop through each cluster (from 2 to 10)
+    kMeans = KMeans(n_clusters = int(ii)).fit(x) # compute kmeans using scikit
+    cId = kMeans.labels_# vector of cluster IDs that the row belongs to
+    cCoords = kMeans.cluster_centers_ # coordinate location for center of each cluster
+    s = silhouette_samples(x,cId).reshape(-1,1) # compute the mean silhouette coefficient of all samples
+    sSum[ii-2] = sum(s) # take the sum
+    # Plot data:
+    plt.subplot(3,3,ii-1) 
+    plt.hist(s,bins=20) 
+    plt.xlim(-0.2,1)
+    plt.ylim(0,25)
+    plt.xlabel('Silhouette score')
+    plt.ylabel('Count')
+    plt.title('Sum: {}'.format(int(sSum[ii-2]))) # sum rounded to nearest integer
+    plt.tight_layout() # adjusts subplot 
+# Plot the sum of the silhouette scores as a function of the number of clusters, to make it clearer what is going on
+plt.plot(np.linspace(2,numClusters,9),sSum)
+plt.xlabel('Number of clusters')
+plt.ylabel('Sum of Silhouette Scores')
+plt.show()
+
+#%%
+# 3: KMEANS GRAPH
+#From our models, we can see that the number of clusters is 3
+numClusters = 3
+kMeans = KMeans(n_clusters = numClusters).fit(x) 
+cId = kMeans.labels_ 
+cCoords = kMeans.cluster_centers_ 
+# Plot the color-coded data:
+for ii in range(numClusters):
+    plotIndex = np.argwhere(cId == int(ii))
+    plt.plot(x[plotIndex,0],x[plotIndex,1],'o',markersize=1)
+    plt.plot(cCoords[int(ii-1),0],cCoords[int(ii-1),1],'o',markersize=5,color='black')  
+    plt.xlabel('Preference Art Ratings')
+    plt.ylabel('Energy Ratings')
+    plt.title('K-Means')
+#%%
+kMeans.fit(data)
+labels = kMeans.labels_
+clusters = labels
+clusters[clusters == 0] = 3
+predicted_types = np.where(clusters == 0,3, clusters)
+#%%
+# 4: KMEANS RESULTS CORRELATION 
+# E.G. HOW MANY WRONG PREDICTIONS -> CONFUSIOIN MATRIX, TYPE I AND TYPE II ERRORS
+kmeans_results = pd.concat([pd.DataFrame(data), pd.DataFrame(predicted_types)], axis = 1)
+r = np.corrcoef(kmeans_results,rowvar=False)
+sns.heatmap(r, annot=True) 
+plt.colorbar()
+plt.show()
+cm = confusion_matrix(art_types, predicted_types)
+print(cm)
+sns.heatmap(cm, annot=True) 
+plt.colorbar()
+plt.show()
+
+#%% Q8: Considering only the first principal component of the self-image ratings as inputs to a
+#regression model – how well can you predict art preference ratings from that factor alone?
+#scaler = StandardScaler() #Scaling the different columns as the measured units differ from col to col.
+pd_user_data = pd.read_csv("/Users/ghinaalshdaifat/Desktop/theData.csv")
+Q8 = pd.concat([pd_user_data.iloc[:, 0:91], pd_user_data.iloc[:, 205:215]], axis = 1).dropna()
+self_image_ratings8 = Q8.iloc[:, 91:]
+art_ratings8 = Q8.iloc[:, 0:91]
+#transpose matrix 
+self_image_ratings8 = self_image_ratings8.transpose()
+Q8pca = PCA(n_components=1)
+Q8pca.fit(self_image_ratings8)
+self_image_pca = Q8pca.components_.reshape(-1, 1)
+X8 = self_image_pca
+y8 = art_ratings8.mean(axis = 1)
+X_Train8, X_Test8 , y_Train8, y_Test8 = train_test_split(X8, y8, test_size=0.2 ,random_state = 12299542)
+# Linear Regression
+model8 = LinearRegression().fit(X_Train8,y_Train8 )
+pred8 = model8.predict(X_Test8)
+pred8_2 = model8.predict(X_Train8)
+mse8 = mean_squared_error(y_Test8, pred8)#c
+mae8 = mean_absolute_error(y_Test8, pred8) #0.4351452339676892
+r28 = r2_score(y_Test8, pred8) #c
+plt.scatter(X8, y8, color = 'black')
+#plt.scatter(X_Test8, y_Test8, color = 'blue')
+plt.plot(X_Train8, pred8_2, color = "red")
+plt.title("PCA of Self Image Ratings to Predict Art Ratings")
+plt.ylabel("Preference Ratings")
+plt.xlabel("PCA (# of Components = 1)")
+plt.show()
+
+#%% Q9: Consider the first 3 principal components of the “dark personality” traits – use these as inputs
+# to a regression model to predict art preference ratings. Which of these components
+#significantly predict art preference ratings? Comment on the likely identity of these factors
+scaler = StandardScaler() #Scaling the different columns as the measured units differ from col to col.
+from sklearn.model_selection import KFold
+# Collect data
+# Since there are nan values, I need to remove without changing dimension
+dark = pd.DataFrame(user_data[:,182:194])
+dark = dark.fillna(dark.median())
+art_ratings9 = pd.DataFrame(art_ratings)
+# PCA
+n_folds = 10
+Q9pca = PCA(n_components=3)
+dark_pca = pd.DataFrame(Q9pca.fit_transform(dark))
+folds = KFold(n_splits = 10, random_state = 12299542, shuffle = True)
+Q9regressor = LinearRegression()
+Q9scores = cross_val_score(Q9regressor, dark_pca, art_ratings9, scoring='r2', cv=folds, n_jobs=-1)
+print(Q9scores)
+average_scores = np.mean(np.absolute(Q9scores)) #0.07108489236872766
+plt.plot(range(1, n_folds+1), Q9scores)
+plt.xlabel("Fold number")
+plt.ylabel("Evaluation score")
+plt.show()
+plt.scatter(range(1, n_folds+1), Q9scores)
+plt.xlabel("Fold number")
+plt.ylabel("Evaluation score")
+plt.show()
+#%% Variance
+emptyPCA = PCA()
+emptyPCA.fit_transform(dark)
+Varratio = emptyPCA.explained_variance_ratio_ * 100
+sum9 = sum(emptyPCA.explained_variance_ratio_)
+plt.bar(np.arange(len(Varratio)) + 1, Varratio)
+plt.plot(np.arange(len(Varratio)) + 1, Varratio.cumsum(), c="red", marker='o')
+plt.xlabel("Number of Principal Components")
+plt.ylabel("Total explained variance" , sum9)
+plt.xticks(np.arange(0, len(Q9pca.explained_variance_ratio_)+1, 1.0))
+plt.title("Scree plot")
+plt.show(block=False)
+#%%
+Q9pca.fit(dark)
+# Loadings
+loadings9 = Q9pca.components_ @ np.diag(1 / dark.std(axis=0))
+# Sort the loadings in decreasing order to identify the features with the highest loadings
+sorted_loadings9 = np.abs(loadings9).argsort(axis=1)[:, ::-1]
+# Print the indices of the three most common features for each principal component
+for i in range(3):
+    print(f"Principal component {i+1}:")
+    print(sorted_loadings9[i, :1])
+#%%
+pca_2 = PCA(n_components=3)
+pca_2.fit(dark)
+# get the explained variance ratio of each component
+explained_variance_ratio = pca_2.explained_variance_ratio_
+#explaineed_varianncee_ratio
+# sort the components by their explained variance ratio in descending order
+sorted_indices = np.argsort(explained_variance_ratio)[::-1]
+# the most common component is the first component
+most_common_component = sorted_indices[0]
+plt.bar(range(3), explained_variance_ratio, align="center")
+plt.xlabel("Component")
+plt.ylabel("Explained Variance Ratio")
+plt.show()
+loadings9 = pca_2.components_
+
+#%% Q10: Can you determine the political orientation of the users (to simplify things and avoid gross
+#class imbalance issues, you can consider just 2 classes: “left” (progressive & liberal) vs. “nonleft” (everyone else)) from all the other information available, using any classification model
+#of your choice? Make sure to comment on the classification quality of this model. 
+from sklearn.ensemble import RandomForestClassifier
+import random
+pd_user_data = pd.read_csv("/Users/ghinaalshdaifat/Desktop/theData.csv")
+Q10 = pd_user_data.dropna()
+X10 = Q10.drop(Q10.iloc[217:218], axis = 1).mean(axis = 1)
+X10 = Q10.iloc[: , :204].mean(axis = 1)
+political = Q10.iloc[: , 217]
+political = political.replace([1,2] ,0) #  0 is left
+political = political.replace([3, 4, 5, 6] ,1) #1 is nonleft
+y10 = political.to_numpy().reshape(275,1)
+# Load and split the data
+X_train10, X_test10, y_train10, y_test10 = train_test_split(X10, y10, test_size=0.2, random_state = 12299542)
+# Convert the data to NumPy arrays
+X_train10 = X_train10.to_numpy().reshape(-1, 1)
+X_test10 = X_test10.to_numpy().reshape(-1, 1)
+y_train10 = y_train10
+y_test10 = y_test10
+model10 = RandomForestClassifier(n_estimators=200)
+# Train the model on the training data
+model10.fit(X_train10, y_train10)
+# Test the model on the test data
+y_pred10 = model10.predict(X_test10)
+# Evaluate the model performance
+accuracy = model10.score(X_test10, y_test10)
+print(f'Accuracy: {accuracy:.2f}')
+import matplotlib.pyplot as plt
+from sklearn.metrics import plot_confusion_matrix
+# Plot the confusion matrix
+plot_confusion_matrix(model10, X_test10, y_test10)
+plt.show()
+#%%
+
+
+
+
+
+
+
+
+
+ 
